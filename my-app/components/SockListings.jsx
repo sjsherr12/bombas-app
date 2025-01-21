@@ -1,6 +1,10 @@
 import React from "react";
-import { View, Text, Image, StyleSheet, FlatList } from "react-native";
+import { View, Text, Image, StyleSheet, FlatList, TouchableOpacity, Modal, Animated, TouchableWithoutFeedback } from "react-native";
 import _ from "lodash";
+import { useState, useEffect } from "react";
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import Icon2 from 'react-native-vector-icons/FontAwesome';
+import { Rating } from 'react-native-ratings';
 
 const exampleListings = [
     {
@@ -341,38 +345,243 @@ const exampleListings = [
     }
   ];
 
-const SockListing = ({ image, title, price, colors }) => {
+const ColorCircles = ({ colors, size, spacing, selectable = true, onColorSelect }) => {
+  const [selectedColor, setSelectedColor] = useState(null);
+
+  const handleColorSelect = (color) => {
+    if (selectable) {
+      setSelectedColor(color);
+      if (onColorSelect) {
+        onColorSelect(color); // Notify parent of the selected color
+      }
+    }
+  };
+
   return (
-    <View style={styles.outerContainer}>
-      <Image source={image} style={styles.image} />
-      <View style={styles.listingContainer}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.price}>${price.toFixed(2)}</Text>
-        <View style={styles.colorsContainer}>
-          {colors.map((color, index) => (
-            <View
-              key={index}
-              style={[styles.colorCircle, { backgroundColor: color }]}
-            />
-          ))}
-        </View>
-      </View>
+    <View style={styles.colorsContainer}>
+      {colors.map((color, index) => (
+        <TouchableOpacity
+          key={index}
+          onPress={() => handleColorSelect(color)}
+          disabled={!selectable} // Disable if selectable is false
+        >
+          <View
+            style={[
+              styles.colorCircle,
+              {
+                backgroundColor: color,
+                width: size,
+                height: size,
+                marginRight: spacing,
+                borderWidth: selectedColor === color ? 2 : 1, // Highlight selected color with border
+                borderColor: selectedColor === color ? '#000' : '#ccc', // Add border color
+              },
+            ]}
+          />
+        </TouchableOpacity>
+      ))}
     </View>
+  );
+};
+
+const SelectableSizes = ({onSizeSelect}) => {
+  const [selectedSize, setSelectedSize] = useState(null);
+
+  const sizes = ['S', 'M', 'L', 'XL'];
+
+  const handleSizeSelect = (size) => {
+    setSelectedSize(size);
+    if (onSizeSelect) {
+      onSizeSelect(size); // Notify parent of the selected size
+    }
+  };
+
+  return (
+    <View style={styles.sizesContainer}>
+      {sizes.map((size, index) => (
+        <TouchableOpacity
+          key={index}
+          style={[
+            styles.sizeBox,
+            {
+              borderColor: selectedSize === size ? 'black' : 'transparent', // Black border when selected
+            },
+          ]}
+          onPress={() => handleSizeSelect(size)}
+        >
+          <Text
+            style={[
+              styles.sizeLabel,
+              {
+                color: selectedSize === size ? 'black' : '#555', // Change label color when selected
+              },
+            ]}
+          >
+            {size}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+};
+  
+
+const SockListing = ({ image, title, price, colors, onPress }) => {
+  return (
+    <TouchableOpacity style={styles.outerContainer} onPress={onPress} activeOpacity={0.8}>
+        <Image source={image} style={styles.image} />
+        <View style={styles.listingContainer}>
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.price}>${price.toFixed(2)}</Text>
+          <ColorCircles colors={colors} size={16} spacing={8} selectable={false}></ColorCircles>
+        </View>
+    </TouchableOpacity>
   );
 };
 
 export default function SockListings({category}) {
   
-  let filteredListings = exampleListings.filter((listing) => {
-    if (category === "Men" || category === "Women" || category === "Kids") {
-      return listing.category === category; 
-    }
-    return true; 
-  });
+  const [shuffledListings, setShuffledListings] = useState([]);
+  const [isShuffled, setIsShuffled] = useState(false); // Track if shuffle is already done
 
+  const [cartItems, setCartItems] = useState([]);
+  const [selectedColor, setSelectedColor] = useState(null);
+  const [selectedSize, setSelectedSize] = useState(null);
+  
+  useEffect(() => {
+    if (!isShuffled) {
+      setShuffledListings(_.shuffle(exampleListings)); // Shuffle only once
+      setIsShuffled(true); // Mark shuffle as done
+    }
+  }, [isShuffled, exampleListings]); // Ensure it doesn't reshuffle unnecessarily
+  
+  let filteredListings = shuffledListings.filter((listing) => {
+    if (category === "Men" || category === "Women" || category === "Kids") {
+      return listing.category === category;
+    }
+    return true;
+  });
+  
   if (!category || category === "All") {
-    filteredListings = _.shuffle(filteredListings); 
+    filteredListings = shuffledListings; // Use already shuffled listings
   }
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalAnim] = useState(new Animated.Value(0));
+  const [selectedSock, setSelectedSock] = useState(null);
+
+  const [cartModalVisible, setCartModalVisible] = useState(false);
+  const [cartModalAnim] = useState(new Animated.Value(1));
+
+  const openCartModal = () => {
+    setCartModalVisible(true);
+    Animated.timing(cartModalAnim, {
+      toValue: 0,
+      duration: 280,
+      useNativeDriver: true,
+    }).start();
+  }
+
+  const closeCartModal = () => {
+    Animated.timing(cartModalAnim, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => setCartModalVisible(false));
+  }
+
+  const openModal = (sock) => {
+    setSelectedSock(sock);
+    setModalVisible(true);
+    Animated.timing(modalAnim, {
+      toValue: 1,
+      duration: 180,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const closeModal = () => {
+    Animated.timing(modalAnim, {
+      toValue: 0,
+      duration: 180,
+      useNativeDriver: true,
+    }).start(() => setModalVisible(false));
+  };
+
+  const addToCart = () => {
+    if (!selectedColor || !selectedSize) {
+      alert('Please select a color and size before adding to the cart.');
+      return;
+    }
+  
+    const newItem = {
+      id: selectedSock.id,
+      image: selectedSock.image,
+      title: selectedSock.title,
+      price: selectedSock.price,
+      selectedColor,
+      selectedSize,
+      quantity: 1,  // Initialize quantity as 1
+    };
+  
+    setCartItems((prevItems) => {
+      // Check if item already exists with the same color and size
+      const existingItemIndex = prevItems.findIndex(
+        (item) =>
+          item.id === newItem.id &&
+          item.selectedColor === newItem.selectedColor &&
+          item.selectedSize === newItem.selectedSize
+      );
+  
+      if (existingItemIndex > -1) {
+        // If the item exists, update its quantity
+        const updatedItems = [...prevItems];
+        updatedItems[existingItemIndex].quantity += 1;  // Increment quantity
+        return updatedItems;
+      } else {
+        // If the item doesn't exist, add the new item with quantity 1
+        return [...prevItems, newItem];
+      }
+    });
+  
+    openCartModal(); // Open the cart modal
+  };
+  
+  const removeFromCart = (id, selectedColor, selectedSize) => {
+    setCartItems((prevCartItems) =>
+      prevCartItems.filter(
+        (item) =>
+          item.id !== id || 
+          item.selectedColor !== selectedColor ||
+          item.selectedSize !== selectedSize
+      )
+    );
+  };
+
+  const increaseQuantity = (id, selectedColor, selectedSize) => {
+    setCartItems((prevCartItems) =>
+      prevCartItems.map((item) =>
+        item.id === id &&
+        item.selectedColor === selectedColor &&
+        item.selectedSize === selectedSize
+          ? { ...item, quantity: item.quantity + 1 }
+          : item
+      )
+    );
+  };
+  
+  const decreaseQuantity = (id, selectedColor, selectedSize) => {
+    setCartItems((prevCartItems) =>
+      prevCartItems.map((item) =>
+        item.id === id &&
+        item.selectedColor === selectedColor &&
+        item.selectedSize === selectedSize &&
+        item.quantity > 1
+          ? { ...item, quantity: item.quantity - 1 }
+          : item
+      )
+    );
+  };   
   
   return (
     <View style={styles.container}>
@@ -385,12 +594,162 @@ export default function SockListings({category}) {
             title={item.title}
             price={item.price}
             colors={item.colors}
+            onPress={() => openModal(item)}
           />
         )}
         contentContainerStyle={styles.listingsWrapper}
         numColumns={3} 
         columnWrapperStyle={styles.row}
       />
+
+      <Modal visible={modalVisible} transparent={true} animationType="fade" onRequestClose={closeModal}>
+        <Animated.View
+          style={[
+            styles.modalContainer,
+            {
+              opacity: modalAnim,
+              transform: [
+                {
+                  translateY: modalAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [300, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          {selectedSock && (
+            <View style = {styles.outerModal}>
+              <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
+                <Icon name="arrow-back" size={30} color="#fff" />
+              </TouchableOpacity>
+              <Image source={selectedSock.image} style={styles.largeImage} />
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>{selectedSock.title}</Text>
+                <Text style={styles.modalPrice}>${selectedSock.price.toFixed(2)}</Text>
+                <View style={styles.reviewsContainer}>
+                  {/* Rating (Stars with Half Star) */}
+                  <Rating
+                    type="star"
+                    ratingCount={5}
+                    imageSize={26}
+                    startingValue={4.6} 
+                    ratingColor='#29398e'
+                    readonly
+                    style={styles.starsContainer}
+                  />
+                  
+                  {/* Reviews Count */}
+                  <Text style={styles.reviewsText}>10,000 Reviews</Text>
+                </View>
+                <Text style={styles.modalText}>Colors:</Text>
+                <ColorCircles colors={selectedSock.colors} size={38} spacing={14} onColorSelect={setSelectedColor}></ColorCircles>
+                <Text style={styles.modalText}>Sizes:</Text>
+                <SelectableSizes onSizeSelect={setSelectedSize}></SelectableSizes>
+                <TouchableOpacity style={styles.cartButton} onPress={addToCart}>
+                  <Text style={styles.cartText}>Add to Cart</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </Animated.View>
+
+
+          <Modal visible={cartModalVisible} transparent={true} animationType="none" onRequestClose={closeCartModal}>
+            <TouchableWithoutFeedback onPress={closeCartModal}>
+              <View style={styles.overlay}>
+                <TouchableWithoutFeedback>
+                  <Animated.View
+                    style={[
+                      styles.cartModalContainer,
+                      {
+                        transform: [
+                          {
+                            translateX: cartModalAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [0, 500], // Adjust to match animation logic
+                            }),
+                          },
+                        ],
+                      },
+                    ]}
+                  >
+                    <View style={styles.cartModal}>
+                      <Icon name="shopping-cart" size={30} color="#000" style={styles.cartIcon}/>
+                      <Text style={styles.cartHeader}>Shopping Cart</Text>
+                      <Icon name="close" size={30} color="#000" style={styles.cartCloseIcon} onPress={closeCartModal}/>
+                      {cartItems.length > 0 ? (
+                      <>
+                        {cartItems.map((item, index) => (
+                          <View key={index}> 
+                            <View style={styles.cartItem}>
+                              <Image source={item.image} style={styles.cartItemImage} />
+                              <View style={styles.cartItemDetails}>
+                                <Text style={styles.cartItemTitle}>{item.title}</Text>
+                                <Text style={styles.cartItemPrice}>${item.price.toFixed(2)}</Text>
+                                <View style={styles.cartItemColor}>
+                                  <Text style={styles.cartItemAttributes}>Color:</Text>
+                                  <View
+                                    style={[
+                                      {
+                                        backgroundColor: item.selectedColor,
+                                        width: 14,
+                                        height: 14,
+                                        marginLeft: 6,
+                                        borderWidth: 1,
+                                        borderColor: '#ccc',
+                                        borderRadius: 100,
+                                      },
+                                    ]}
+                                  />
+                                </View>
+                                <Text style={styles.cartItemAttributes}>Size: {item.selectedSize}</Text>
+                                <Icon2 name="trash" size={26} color="#000" style={styles.trashIcon} onPress={() => removeFromCart(item.id, item.selectedColor, item.selectedSize)} />
+                                <View style={styles.quantityContainer}>
+                                  {/* Minus Button */}
+                                  <TouchableOpacity
+                                    style={styles.quantityBox}
+                                    onPress={() => decreaseQuantity(item.id, item.selectedColor, item.selectedSize)}
+                                  >
+                                    <Text style={styles.quantitySymbol}>-</Text>
+                                  </TouchableOpacity>
+                                  {/* Quantity Display */}
+                                  <View style={styles.quantityMiddleBox}>
+                                    <Text style={styles.quantityNumber}>{item.quantity || 1}</Text>
+                                  </View>
+                                  {/* Plus Button */}
+                                  <TouchableOpacity
+                                    style={styles.quantityBox}
+                                    onPress={() => increaseQuantity(item.id, item.selectedColor, item.selectedSize)}
+                                  >
+                                    <Text style={styles.quantitySymbol}>+</Text>
+                                  </TouchableOpacity>
+                                </View>
+                              </View>
+                            </View>
+                            {index < cartItems.length - 1 && <View style={styles.cartItemSeparator} />}
+                          </View>
+                        ))}
+                        <View style={styles.subtotal}>
+                          <Text style={styles.subTotalText}>
+                            Subtotal: ${cartItems.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2)}
+                          </Text>
+                          <TouchableOpacity style={styles.checkout}>
+                            <Text style={styles.checkoutText}>Checkout</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </>
+                    ) : (
+                      <Text>Your cart is empty.</Text>
+                    )}
+                    </View>
+                  </Animated.View>
+                </TouchableWithoutFeedback>
+              </View>
+            </TouchableWithoutFeedback>
+          </Modal>
+      </Modal>
     </View>
   );
 }
@@ -407,6 +766,100 @@ const styles = StyleSheet.create({
     justifyContent: "space-between", 
     marginBottom: 16, 
   },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  outerModal: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#fff',
+  },
+  modalContent: {
+    paddingTop: 20,
+    paddingBottom: 24,
+    paddingHorizontal: 32,
+    flex: 1, 
+    flexDirection: 'column'
+  },
+  largeImage: {
+    width: '100%',
+    height: 690,
+  },
+  modalTitle: {
+    fontSize: 30,
+    fontWeight: 'bold',
+  },
+  modalPrice: {
+    fontSize: 24,
+    marginTop: 12,
+  },
+  modalText: {
+    fontSize: 18,
+    marginTop: 18,
+    fontWeight:'bold',
+    marginBottom:2,
+  },
+  reviewsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  starsContainer: {
+    marginRight: 12,
+  },
+  reviewsText: {
+    fontSize: 18,
+    color: '#333',
+  },
+  sizesContainer: {
+    flexDirection: 'row', // Arrange boxes in a row
+    justifyContent: 'space-between', // Equal spacing between boxes
+    marginTop: 12, // Adjust the margin to your needs
+  },
+  sizeBox: {
+    width: '22.8%', // Adjust width to ensure equal spacing
+    height: 46, // Fixed height for each box
+    backgroundColor: '#f0f0f0', // Light grey background
+    justifyContent: 'center', // Center the label vertically
+    alignItems: 'center', // Center the label horizontally
+    borderWidth: 2, // Border width to make the border visible when selected
+    borderRadius: 6, // Rounded corners for the boxes
+  },
+  sizeLabel: {
+    fontSize: 16, // Font size for the size label
+    fontWeight: 'bold', // Bold text for the size label
+  },
+  closeButton: {
+    position: 'absolute', 
+    top: 36, 
+    left: 26, 
+    padding: 10, 
+    backgroundColor: "#29398e", 
+    borderRadius: 50,   
+    justifyContent: 'center', 
+    alignItems: 'center',
+    zIndex: 10, 
+  },
+  closeButtonText: {
+    color: "white",
+    fontSize: 16,
+  },
+  cartButton:{
+    width:'100%',
+    height:55,
+    backgroundColor:'#29398e',
+    borderRadius:10,
+    alignItems:'center',
+    justifyContent:'center',
+    marginTop:'auto'
+  },
+  cartText:{
+    fontSize: 19, // Font size for the size label
+    fontWeight: 'bold',
+    color:'#fff'
+  },
   outerContainer:{
     borderWidth: 1,
     borderColor: "#ddd",
@@ -414,7 +867,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     backgroundColor: "#fff",
     alignItems: "flex-start",
-    width: '31.7%'
+    width: '31.6%'
   },
   listingContainer: {
     padding: 14,
@@ -445,11 +898,142 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   colorCircle: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    marginRight: 8,
+    borderRadius: 100,
     borderWidth: 1,
     borderColor: "#ccc",
   },
+  cartModalContainer:{
+    width: '46%',
+    height: '100%',
+    backgroundColor: '#fff',
+    position: 'absolute',
+    right: 0,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+  },
+  cartHeader:{
+    fontSize: 26,
+    fontWeight: 'bold',
+    textAlign:'center',
+    marginBottom:24,
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)", // Semi-transparent overlay
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  cartModal:{
+    paddingHorizontal:20,
+    paddingVertical:36,
+    flexDirection:'column',
+    height:'100%'
+  },
+  cartIcon:{
+    position: 'absolute', 
+    top: 36, 
+    left: 20, 
+  },
+  cartCloseIcon:{
+    position: 'absolute', 
+    top: 36, 
+    right: 20, 
+  },
+  cartItemImage:{
+    width:97,
+    height:97,
+  },
+  cartItem:{
+    flexDirection:'row'
+  },
+  cartItemDetails:{
+    flexDirection:'column',
+    flex:1,
+    marginLeft:12,
+    justifyContent:'space-between'
+  },
+  cartItemTitle:{
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  cartItemPrice:{
+    fontSize:14
+  },
+  cartItemAttributes:{
+    fontSize:14
+  },
+  cartItemColor:{
+    flexDirection:'row',
+    alignItems:'center'
+  },
+  trashIcon:{
+    position: 'absolute', 
+    bottom:0,
+    right:0
+  },
+  emptyCartText:{
+    fontSize:18,
+  },
+  cartItemSeparator:{
+    height: 1, 
+    backgroundColor: '#ccc', 
+    marginVertical: 18,
+    width:'100%'
+  },
+  quantityContainer:{
+    flexDirection:'row',
+    position:'absolute',
+    bottom:0,
+    right:38,
+    backgroundColor:'#ccc',
+    alignItems:'center'
+  },
+  quantityBox:{
+    backgroundColor:'#ccc',
+    width:22,
+    height:22,
+    alignItems:'center',
+    justifyContent:'center'
+  },
+  quantityMiddleBox:{
+    backgroundColor:'#fff',
+    width:22,
+    height:18,
+    alignItems:'center',
+    justifyContent:'center'
+  },
+  quantitySymbol:{
+    color:'#000',
+    textAlign:'center'
+  },
+  quantityNumber:{
+    color:'#000',
+    fontSize:13,
+    fontWeight:'bold'
+  },
+  subtotal:{
+    marginTop:'auto',
+    marginLeft:'auto',
+    width:'100%',
+  },
+  subTotalText:{
+    color:'#000',
+    fontSize:22,
+    fontWeight:'bold',
+    marginBottom:20
+  },
+  checkout:{
+    width:'100%',
+    alignItems:'center',
+    justifyContent:'center',
+    height:60,
+    backgroundColor:'#29398e',
+    borderRadius:6
+  },
+  checkoutText:{
+    color:'#fff',
+    fontSize:20,
+    fontWeight:'bold'
+  }
 });
