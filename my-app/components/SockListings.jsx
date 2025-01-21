@@ -581,7 +581,31 @@ export default function SockListings({category}) {
           : item
       )
     );
-  };   
+  };
+
+  const [orderCompleteModalVisible, setOrderCompleteModalVisible] = useState(false);
+  const [orderCompleteModalAnim] = useState(new Animated.Value(0));
+
+  const handleCheckout = () => {
+    setCartModalVisible(false);
+    setCartItems([]);
+  
+    // Display the confirmation modal
+    setOrderCompleteModalVisible(true);
+    Animated.timing(orderCompleteModalAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const closeOrderCompleteModal = () => {
+    Animated.timing(orderCompleteModalAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => setOrderCompleteModalVisible(false));
+  };  
   
   return (
     <View style={styles.container}>
@@ -743,6 +767,51 @@ export default function SockListings({category}) {
                     ) : (
                       <Text>Your cart is empty.</Text>
                     )}
+                    </View>
+                  </Animated.View>
+                </TouchableWithoutFeedback>
+              </View>
+            </TouchableWithoutFeedback>
+          </Modal>
+          <Modal
+            visible={orderCompleteModalVisible}
+            transparent={true}
+            animationType="none"
+            onRequestClose={() => setOrderCompleteModalVisible(false)}
+          >
+            <TouchableWithoutFeedback onPress={() => closeOrderCompleteModal()}>
+              <View style={styles.overlay}>
+                <TouchableWithoutFeedback>
+                  <Animated.View
+                    style={[
+                      styles.orderCompleteModalContainer,
+                      {
+                        opacity: orderCompleteModalAnim,
+                        transform: [
+                          {
+                            scale: orderCompleteModalAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [0.8, 1], // Smooth scale effect
+                            }),
+                          },
+                        ],
+                      },
+                    ]}
+                  >
+                    <View style={styles.orderCompleteModal}>
+                      <Text style={styles.orderCompleteHeader}>Your Order is Complete!</Text>
+                      <Text style={styles.orderSummary}>
+                        You have ordered {cartItems.length} item(s) for a total of $
+                        {cartItems
+                          .reduce((total, item) => total + item.price * item.quantity, 0)
+                          .toFixed(2)}
+                      </Text>
+                      <TouchableOpacity
+                        style={styles.okButton}
+                        onPress={() => closeOrderCompleteModal()}
+                      >
+                        <Text style={styles.okButtonText}>OK</Text>
+                      </TouchableOpacity>
                     </View>
                   </Animated.View>
                 </TouchableWithoutFeedback>
@@ -1035,5 +1104,35 @@ const styles = StyleSheet.create({
     color:'#fff',
     fontSize:20,
     fontWeight:'bold'
-  }
+  },
+  orderCompleteModalContainer: {
+    width: '80%',
+    padding: 20,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  orderCompleteModal: {
+    alignItems: 'center',
+  },
+  orderCompleteHeader: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  orderSummary: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  okButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+  },
+  okButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
 });
