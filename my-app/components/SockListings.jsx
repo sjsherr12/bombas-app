@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Icon2 from 'react-native-vector-icons/FontAwesome';
 import { Rating } from 'react-native-ratings';
+import { usePoints } from "./context/PointsContext";
 
 const exampleListings = [
     {
@@ -585,10 +586,27 @@ export default function SockListings({category}) {
 
   const [orderCompleteModalVisible, setOrderCompleteModalVisible] = useState(false);
   const [orderCompleteModalAnim] = useState(new Animated.Value(0));
+  const [checkoutTotal, setCheckoutTotal] = useState(0);
+  const [itemLength, setItemLength] = useState(0);
+  const [orderSummaryItems, setOrderSummaryItems] = useState([]);
+  const { points, addPoints } = usePoints();
+  const [addedPoints, setAddedPoints] = useState(0);
 
   const handleCheckout = () => {
     setCartModalVisible(false);
+    const totalItemCount = cartItems.reduce((total, item) => total + item.quantity, 0);
+    setItemLength(totalItemCount);
+    setOrderSummaryItems(cartItems);
+
+    const totalCheckoutAmount = cartItems
+        .reduce((total, item) => total + item.price * item.quantity, 0)
+        .toFixed(2);
+    setCheckoutTotal(totalCheckoutAmount);
     setCartItems([]);
+
+    const earnedPoints = Math.floor(totalCheckoutAmount * 10); 
+    setAddedPoints(earnedPoints);
+    addPoints(earnedPoints);
   
     // Display the confirmation modal
     setOrderCompleteModalVisible(true);
@@ -759,7 +777,7 @@ export default function SockListings({category}) {
                           <Text style={styles.subTotalText}>
                             Subtotal: ${cartItems.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2)}
                           </Text>
-                          <TouchableOpacity style={styles.checkout}>
+                          <TouchableOpacity style={styles.checkout} onPress={handleCheckout}>
                             <Text style={styles.checkoutText}>Checkout</Text>
                           </TouchableOpacity>
                         </View>
@@ -784,28 +802,59 @@ export default function SockListings({category}) {
                 <TouchableWithoutFeedback>
                   <Animated.View
                     style={[
-                      styles.orderCompleteModalContainer,
                       {
                         opacity: orderCompleteModalAnim,
                         transform: [
                           {
                             scale: orderCompleteModalAnim.interpolate({
                               inputRange: [0, 1],
-                              outputRange: [0.8, 1], // Smooth scale effect
+                              outputRange: [0.8, 1], 
                             }),
                           },
                         ],
                       },
                     ]}
                   >
-                    <View style={styles.orderCompleteModal}>
+                    <View style={styles.orderCompleteModalContainer}>
                       <Text style={styles.orderCompleteHeader}>Your Order is Complete!</Text>
                       <Text style={styles.orderSummary}>
-                        You have ordered {cartItems.length} item(s) for a total of $
-                        {cartItems
-                          .reduce((total, item) => total + item.price * item.quantity, 0)
-                          .toFixed(2)}
+                        You have ordered {itemLength} item(s) for a total of ${checkoutTotal}
                       </Text>
+
+                      <View style={styles.orderSummaryModal}>
+                          {orderSummaryItems.map((item, index) => (
+                            <View key={index} style={styles.orderSummaryContainer}>
+                              <View style={styles.cartItem}>
+                                <Image source={item.image} style={styles.cartItemImage} />
+                                <View style={styles.orderSummaryDetails}>
+                                  <Text style={styles.cartItemTitle}>{item.title}</Text>
+                                  <Text style={styles.cartItemPrice}>${item.price.toFixed(2)}</Text>
+                                  <View style={styles.cartItemColor}>
+                                    <Text style={styles.cartItemAttributes}>Color:</Text>
+                                    <View
+                                      style={[
+                                        {
+                                          backgroundColor: item.selectedColor,
+                                          width: 14,
+                                          height: 14,
+                                          marginLeft: 6,
+                                          borderWidth: 1,
+                                          borderColor: '#ccc',
+                                          borderRadius: 100,
+                                        },
+                                      ]}
+                                    />
+                                  </View>
+                                  <Text style={styles.cartItemAttributes}>Size: {item.selectedSize}</Text>
+                                  <Text style={styles.quantityText}>Quantity: {item.quantity || 1}</Text>
+                                </View>
+                              </View>
+                              {index < orderSummaryItems.length - 1 && <View style={styles.cartItemSeparator} />}
+                            </View>
+                          ))}
+                      </View>
+                      
+                      <Text style={styles.pointsText}>Points earned: {addedPoints} → Go check out the rewards shop!</Text>
                       <TouchableOpacity
                         style={styles.okButton}
                         onPress={() => closeOrderCompleteModal()}
@@ -1106,13 +1155,10 @@ const styles = StyleSheet.create({
     fontWeight:'bold'
   },
   orderCompleteModalContainer: {
-    width: '80%',
-    padding: 20,
+    paddingVertical: 30,
+    paddingHorizontal:26,
     backgroundColor: '#fff',
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  orderCompleteModal: {
+    borderRadius: 12,
     alignItems: 'center',
   },
   orderCompleteHeader: {
@@ -1125,14 +1171,34 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
   },
+  pointsText:{
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 6,
+    marginTop:28,
+  },
   okButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
+    backgroundColor: '#29398e',
+    paddingVertical: 12,
+    width:'100%',
+    borderRadius: 6,
+    marginTop:12,
+    alignItems:'center',
+    justifyContent:'center'
   },
   okButtonText: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+  orderSummaryModal:{
+    flexDirection:'column'
+  },
+  orderSummaryDetails:{
+      flexDirection:'column',
+      marginLeft:22,
+      justifyContent:'space-between'
+  },
+  orderSummaryContainer:{
+    marginTop:4,
   },
 });
