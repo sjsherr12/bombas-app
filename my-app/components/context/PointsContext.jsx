@@ -5,7 +5,7 @@ const PointsContext = createContext();
 
 // Create a provider component
 export const PointsProvider = ({ children }) => {
-  const [points, setPoints] = useState(0);
+  const [points, setPoints] = useState(10000);
 
   // Function to add points
   const addPoints = (amount) => {
@@ -22,8 +22,12 @@ export const PointsProvider = ({ children }) => {
     setPoints(0);
   };
 
+  const displayPoints = () => {
+    return points.toLocaleString(); 
+  };
+
   return (
-    <PointsContext.Provider value={{ points, setPoints, addPoints, subtractPoints, resetPoints }}>
+    <PointsContext.Provider value={{ points, setPoints, addPoints, subtractPoints, resetPoints, displayPoints }}>
       {children}
     </PointsContext.Provider>
   );

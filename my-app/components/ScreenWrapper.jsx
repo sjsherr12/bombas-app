@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native';
 
 export default function ScreenWrapper({ children, withHeader }) {
   return (
-    <SafeAreaView style={[styles.container, { paddingVertical: withHeader ? 14 : 20 }]}>
+    <SafeAreaView style={[styles.container, { paddingVertical: withHeader ? 14 : 12 }]}>
       {children}
     </SafeAreaView>
   );

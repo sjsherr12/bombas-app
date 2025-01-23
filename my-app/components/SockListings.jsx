@@ -346,7 +346,7 @@ const exampleListings = [
     }
   ];
 
-const ColorCircles = ({ colors, size, spacing, selectable = true, onColorSelect }) => {
+export const ColorCircles = ({ colors, size, spacing, selectable = true, onColorSelect }) => {
   const [selectedColor, setSelectedColor] = useState(null);
 
   const handleColorSelect = (color) => {
@@ -385,7 +385,7 @@ const ColorCircles = ({ colors, size, spacing, selectable = true, onColorSelect 
   );
 };
 
-const SelectableSizes = ({onSizeSelect}) => {
+export const SelectableSizes = ({onSizeSelect}) => {
   const [selectedSize, setSelectedSize] = useState(null);
 
   const sizes = ['S', 'M', 'L', 'XL'];
@@ -426,16 +426,43 @@ const SelectableSizes = ({onSizeSelect}) => {
   );
 };
   
-
-const SockListing = ({ image, title, price, colors, onPress }) => {
+export const SockListing = ({
+  image,
+  title,
+  price,
+  colors,
+  onPress,
+  exclusiveDeal = false,
+  exclusiveDealTitle = '',
+  exclusiveDealColor = '#000', // Default color
+}) => {
   return (
-    <TouchableOpacity style={styles.outerContainer} onPress={onPress} activeOpacity={0.8}>
-        <Image source={image} style={styles.image} />
-        <View style={styles.listingContainer}>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.price}>${price.toFixed(2)}</Text>
-          <ColorCircles colors={colors} size={16} spacing={8} selectable={false}></ColorCircles>
+    <TouchableOpacity
+      style={styles.outerContainer}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <Image source={image} style={styles.image} />
+      <View style={styles.listingContainer}>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.price}>${price.toFixed(2)}</Text>
+        <ColorCircles
+          colors={colors}
+          size={16}
+          spacing={8}
+          selectable={false}
+        />
+      </View>
+      {exclusiveDeal && (
+        <View
+          style={[
+            styles.exclusiveDealBox,
+            { backgroundColor: exclusiveDealColor },
+          ]}
+        >
+          <Text style={styles.exclusiveDealText}>{exclusiveDealTitle}</Text>
         </View>
+      )}
     </TouchableOpacity>
   );
 };
@@ -629,6 +656,7 @@ export default function SockListings({category}) {
     <View style={styles.container}>
       <FlatList
         data={filteredListings}
+        showsVerticalScrollIndicator={false}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <SockListing
@@ -982,13 +1010,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ddd",
     borderRadius: 12,
-    marginBottom: 4,
+    marginBottom: 3,
     backgroundColor: "#fff",
-    alignItems: "flex-start",
-    width: '31.6%'
+    width: 246,
+    overflow: 'hidden',
   },
   listingContainer: {
     padding: 14,
+  },
+  exclusiveDealBox: {
+    position: 'absolute',
+    bottom: 14, // Ensures alignment with the padding
+    right: 14, // Ensures alignment with the padding
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+  },
+  exclusiveDealText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#fff', // Text color for contrast
   },
   image: {
     width: "100%",
