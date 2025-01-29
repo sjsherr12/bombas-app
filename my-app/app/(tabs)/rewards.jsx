@@ -1,9 +1,13 @@
-import { View, Text, StyleSheet, Image, FlatList, ScrollView, TouchableOpacity, LayoutAnimation, Modal } from 'react-native';
+import { View, Text, StyleSheet, Image, FlatList, ScrollView, TouchableOpacity, LayoutAnimation, Modal, LogBox } from 'react-native';
 import ScreenWrapper from '@/components/ScreenWrapper';
 import { usePoints } from '@/components/context/PointsContext';
 import { SockListing } from '@/components/SockListings';
 import Collapsible from "react-native-collapsible";
 import { useState } from 'react';
+
+LogBox.ignoreLogs([
+  'VirtualizedLists should never be nested',
+]);
 
 const IconLogo = require('@/assets/images/IconLogo.png');
 const RedeemPoints1 = require('@/assets/images/RedeemPoints1.png');
@@ -177,6 +181,7 @@ const EarnPointsMethods = () => {
     <View style={styles.earnPointsContainer}>
       <FlatList
         data={faqData}
+        nestedScrollEnabled={true}
         renderItem={renderItem}
         keyExtractor={(item, index) => `${index}`}
         contentContainerStyle={styles.earnPointsListContainer}
@@ -190,6 +195,7 @@ export const HorizontalSockList = () => {
       <FlatList
         data={exampleListings}
         horizontal
+        nestedScrollEnabled={true}
         showsHorizontalScrollIndicator={false}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
@@ -367,31 +373,35 @@ export default function Rewards() {
   const { points, subtractPoints, displayPoints } = usePoints();
 
   return (
-    <ScreenWrapper>
-      <ScrollView contentContainerStyle={{flexGrow: 1}} showsVerticalScrollIndicator={false} >
-        <View style={styles.pointsBox}>
-          <View style={styles.pointsBoxDetails}>
-            <Image source={IconLogo} style={styles.IconLogoImage}></Image>
-            <Text style={styles.totalPointsText}>Total Points: {displayPoints()}</Text>
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false} >
+        <ScreenWrapper>
+          <View style={styles.pointsBox}>
+            <View style={styles.pointsBoxDetails}>
+              <Image source={IconLogo} style={styles.IconLogoImage}></Image>
+              <Text style={styles.totalPointsText}>Total Points: {displayPoints()}</Text>
+            </View>
           </View>
-        </View>
-        <RedeemPointsSection></RedeemPointsSection>
-        <View style={styles.exclusiveDealsBox}>
-          <Text style={styles.redeemPointsHeader}>Exclusive Deals</Text>
-          <View style={styles.redeemPointsLine}></View>
-          <HorizontalSockList></HorizontalSockList>
-        </View>
-        <View style={styles.exclusiveDealsBox}>
-          <Text style={styles.redeemPointsHeader}>Earn Points</Text>
-          <View style={styles.redeemPointsLine}></View>
-          <EarnPointsMethods></EarnPointsMethods>
-        </View>
+          <RedeemPointsSection></RedeemPointsSection>
+          <View style={styles.exclusiveDealsBox}>
+            <Text style={styles.redeemPointsHeader}>Exclusive Deals</Text>
+            <View style={styles.redeemPointsLine}></View>
+            <HorizontalSockList></HorizontalSockList>
+          </View>
+          <View style={styles.exclusiveDealsBox}>
+            <Text style={styles.redeemPointsHeader}>Earn Points</Text>
+            <View style={styles.redeemPointsLine}></View>
+            <EarnPointsMethods></EarnPointsMethods>
+          </View>
+        </ScreenWrapper>
       </ScrollView>
-    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollContainer:{
+    flex:1,
+    backgroundColor:'white'
+  },
   pointsBox:{
     width:'100%',
     paddingVertical:15,

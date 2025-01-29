@@ -10,6 +10,9 @@ export default function RootLayout() {
           <Stack.Screen name="index" />
           <Stack.Screen name="login" />
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="notifications" />
+          <Stack.Screen name="fill" />
+          <Stack.Screen name="showProfile" />
         </Stack>
       </SafeAreaProvider>
     </PointsProvider>
